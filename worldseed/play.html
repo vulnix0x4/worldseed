@@ -1,0 +1,298 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<!-- Standalone copy of index.html for GitHub Pages. index.html is the claude.ai artifact version. -->
+<style>:root{padding-top:env(safe-area-inset-top);padding-bottom:env(safe-area-inset-bottom)}body{margin:0}img{max-width:100%}[hidden]{display:none!important}</style>
+</head>
+<body>
+<title>Worldseed</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bodoni+Moda:ital,opsz,wght@0,6..96,400..800;1,6..96,400..800&family=Hanken+Grotesk:wght@400..700&family=Martian+Mono:wght@300..500&display=swap">
+<style>
+/* Layout: the world fills the screen; a quiet HUD sits on top of it, and every panel is ink glass tinted by the current world's accent. */
+:root{
+  --ink:#0b0d11;            /* panel ground */
+  --glass:rgba(11,13,17,.66);
+  --paper:#f4efe5;          /* text on glass */
+  --dim:rgba(244,239,229,.62);
+  --hair:rgba(244,239,229,.14);
+  --accent:#ffcf6b;         /* set from each world's palette */
+  --accent-ink:#1a1206;
+  --good:#8fe3a3; --bad:#ff8f7a;
+  --display:"Bodoni Moda","Didot","Bodoni 72",Georgia,serif;
+  --ui:"Hanken Grotesk",ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif;
+  --mono:"Martian Mono",ui-monospace,"SF Mono",Menlo,monospace;
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+html,body{height:100%}
+body{background:#0b0d11;color:var(--paper);font:15px/1.5 var(--ui);overflow:hidden;-webkit-font-smoothing:antialiased;touch-action:none;user-select:none;-webkit-user-select:none}
+button,input{font:inherit;color:inherit}
+button{cursor:pointer}
+input{user-select:text;-webkit-user-select:text}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+#gl{position:fixed;inset:0;width:100%;height:100%;display:block;outline:none;cursor:grab}
+#gl:active{cursor:grabbing}
+.glass{background:var(--glass);backdrop-filter:blur(14px) saturate(1.2);-webkit-backdrop-filter:blur(14px) saturate(1.2);border:1px solid var(--hair);border-radius:14px}
+.mono{font-family:var(--mono);font-size:10.5px;letter-spacing:.08em;text-transform:uppercase}
+.btn{border:1px solid var(--hair);background:rgba(244,239,229,.06);border-radius:10px;padding:9px 14px;font-weight:600;font-size:14px;transition:background .15s,border-color .15s}
+.btn:hover{background:rgba(244,239,229,.12);border-color:rgba(244,239,229,.3)}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+.btn.primary:hover{filter:brightness(1.07)}
+.btn:disabled{opacity:.45;cursor:default}
+kbd{font:500 10px/1 var(--mono);border:1px solid var(--hair);border-bottom-width:2px;border-radius:4px;padding:2px 5px;color:var(--dim)}
+
+/* ---------- title screen ---------- */
+#title{position:fixed;inset:0;z-index:40;display:flex;flex-direction:column;justify-content:flex-start;overflow-y:auto;touch-action:pan-y;
+  padding:32px max(24px,env(safe-area-inset-right,0px)) calc(32px + env(safe-area-inset-bottom,0px)) max(24px,env(safe-area-inset-left,0px));
+  background:linear-gradient(180deg,rgba(8,9,12,0) 30%,rgba(8,9,12,.55) 70%,rgba(8,9,12,.85));transition:opacity .6s}
+#title.gone{opacity:0;pointer-events:none}
+#title > h1{margin-top:auto!important}
+#title h1{margin:0;font:italic 500 clamp(64px,11vw,168px)/.86 var(--display);letter-spacing:-.03em;text-shadow:0 2px 40px rgba(0,0,0,.35)}
+#title h1 span{color:var(--accent)}
+#title .lede{margin:14px 0 26px;font:400 clamp(17px,1.6vw,21px)/1.45 var(--ui);color:var(--paper);max-width:40ch;text-shadow:0 1px 18px rgba(0,0,0,.5)}
+.seed{display:flex;gap:10px;align-items:stretch;max-width:860px;padding:8px;border-radius:18px}
+.seed label{display:flex;flex-direction:column;justify-content:center;padding:0 6px 0 10px;flex:1;min-width:0}
+.seed label .mono{color:var(--accent)}
+.seed input{background:none;border:0;outline:none;font:400 clamp(18px,1.9vw,23px)/1.3 var(--display);font-style:italic;padding:6px 0 4px;width:100%;min-width:0}
+.seed input::placeholder{color:rgba(244,239,229,.42)}
+.seed .go{border:0;border-radius:12px;background:var(--accent);color:var(--accent-ink);font:700 16px/1 var(--ui);padding:0 22px;display:flex;align-items:center;gap:10px;white-space:nowrap}
+.seed .go:disabled{opacity:.5}
+.tiers{display:flex;align-self:center;border:1px solid var(--hair);border-radius:10px;padding:3px}
+.tiers button{border:0;background:none;border-radius:7px;padding:7px 9px;color:var(--dim)}
+.tiers button[aria-checked="true"]{background:rgba(244,239,229,.14);color:var(--paper)}
+.ideas{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px;max-width:960px}
+.ideas button{border:1px solid var(--hair);background:rgba(11,13,17,.45);border-radius:999px;padding:8px 14px;font-size:13.5px;backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px)}
+.ideas button:hover{border-color:var(--accent);color:var(--accent)}
+.title-foot{display:flex;gap:10px;margin-top:22px;flex-wrap:wrap;align-items:center}
+.title-foot .status{margin-left:auto;color:var(--dim)}
+.status i{display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--dim);margin-right:7px;vertical-align:1px}
+.status[data-live="1"] i{background:var(--good);box-shadow:0 0 0 3px rgba(143,227,163,.2)}
+
+/* ---------- HUD ---------- */
+#hud{position:fixed;inset:0;z-index:10;pointer-events:none}
+#hud > *{pointer-events:auto}
+#hud.hidden .playonly{display:none!important}
+.topbar{position:absolute;top:calc(14px + env(safe-area-inset-top,0px));left:max(16px,env(safe-area-inset-left,0px));right:max(16px,env(safe-area-inset-right,0px));
+  display:flex;align-items:flex-start;gap:12px;pointer-events:none}
+.topbar > *{pointer-events:auto}
+.where{padding:10px 16px 11px;min-width:0;max-width:min(460px,60vw)}
+.where b{display:block;font:italic 600 21px/1.1 var(--display);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.where span{color:var(--dim);display:block;margin-top:5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tools{margin-left:auto;display:flex;gap:6px;padding:6px;flex-wrap:wrap;justify-content:flex-end}
+.tools button{border:0;background:none;border-radius:9px;height:36px;padding:0 11px;display:flex;align-items:center;gap:7px;font-weight:600;font-size:13.5px;color:var(--paper)}
+.tools button:hover{background:rgba(244,239,229,.1)}
+.tools button[aria-pressed="true"]{background:rgba(244,239,229,.16)}
+.tools svg{width:17px;height:17px}
+.tools kbd{margin-left:2px}
+
+.minimap{position:absolute;left:max(16px,env(safe-area-inset-left,0px));bottom:calc(16px + env(safe-area-inset-bottom,0px));width:156px;height:156px;border-radius:50%;overflow:hidden;padding:0;cursor:pointer}
+.minimap canvas{width:100%;height:100%;display:block}
+.compass{position:absolute;left:max(16px,env(safe-area-inset-left,0px));bottom:calc(178px + env(safe-area-inset-bottom,0px));width:156px;text-align:center;color:var(--dim)}
+
+#labels{position:absolute;inset:0;pointer-events:none;overflow:hidden}
+.lab{position:absolute;left:0;top:0;transform:translate(-50%,-100%);white-space:nowrap;text-align:center;pointer-events:none;will-change:transform,opacity;text-shadow:0 1px 10px rgba(0,0,0,.65)}
+.lab.place b{font:italic 600 17px/1.1 var(--display)}
+.lab.place small{display:block;font:400 9.5px/1.4 var(--mono);letter-spacing:.1em;text-transform:uppercase;color:var(--dim)}
+.lab.place.new b::before{content:"";display:inline-block;width:6px;height:6px;border-radius:50%;background:var(--accent);margin-right:6px;vertical-align:3px}
+.lab.person b{font:600 14px/1.2 var(--ui)}
+.lab.person small{display:block;font:400 9.5px/1.4 var(--mono);letter-spacing:.08em;text-transform:uppercase;color:var(--accent)}
+.lab.ghost b{font:600 13px/1.2 var(--ui);color:#cfe3ff}
+.bubble{display:block;margin:0 auto 6px;max-width:220px;white-space:normal;background:var(--paper);color:var(--ink);border-radius:12px;padding:7px 10px;font:500 13px/1.35 var(--ui);text-shadow:none}
+
+.prompt{position:absolute;left:50%;bottom:calc(30px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);padding:11px 18px;display:flex;gap:10px;align-items:center;font-weight:600;white-space:nowrap;border-radius:999px}
+.prompt kbd{color:var(--paper);border-color:var(--accent)}
+.prompt small{color:var(--dim);font-weight:400}
+.caption{position:absolute;left:50%;top:22%;transform:translateX(-50%);width:min(760px,calc(100% - 32px));text-align:center;font:italic 500 clamp(20px,2.4vw,30px)/1.3 var(--display);
+  text-shadow:0 2px 24px rgba(0,0,0,.7);pointer-events:none;opacity:0;transition:opacity .8s}
+.caption.on{opacity:1}
+.titlecard{position:absolute;inset:0;display:grid;place-content:center;text-align:center;pointer-events:none;opacity:0;transition:opacity 1.4s}
+.titlecard.on{opacity:1}
+.titlecard .mono{color:var(--accent)}
+.titlecard h2{margin:10px 0 8px;font:italic 500 clamp(44px,7vw,104px)/.95 var(--display);letter-spacing:-.02em;text-shadow:0 2px 40px rgba(0,0,0,.5);padding:0 16px}
+.titlecard p{margin:0 auto;max-width:44ch;font-size:18px;text-shadow:0 1px 18px rgba(0,0,0,.6);padding:0 16px}
+
+.toasts{position:absolute;right:max(16px,env(safe-area-inset-right,0px));bottom:calc(16px + env(safe-area-inset-bottom,0px));display:grid;gap:8px;justify-items:end;pointer-events:none}
+.toast{padding:10px 14px;font-size:14px;max-width:340px;display:flex;gap:10px;align-items:center;animation:rise .3s ease both}
+.toast .mono{color:var(--accent)}
+@keyframes rise{from{opacity:0;transform:translateY(8px)}}
+
+/* genesis log */
+#genesis{position:absolute;left:max(16px,env(safe-area-inset-left,0px));top:calc(90px + env(safe-area-inset-top,0px));width:min(380px,calc(100% - 32px));max-height:calc(100% - 140px);display:flex;flex-direction:column;padding:16px 18px;gap:10px}
+#genesis h3{margin:0;font:italic 500 22px/1.15 var(--display)}
+#genesis .q{color:var(--dim);font-style:italic}
+#genesis ol{list-style:none;margin:0;padding:0;display:grid;gap:7px;overflow:auto;min-height:0}
+#genesis li{display:grid;grid-template-columns:62px 1fr;gap:10px;align-items:baseline;animation:rise .35s ease both}
+#genesis li .mono{color:var(--accent)}
+#genesis .think{display:flex;align-items:center;gap:10px;color:var(--dim)}
+#genesis .orb{width:10px;height:10px;border-radius:50%;background:var(--accent);animation:pulse 1.2s ease-in-out infinite}
+@keyframes pulse{50%{transform:scale(.55);opacity:.5}}
+#genesis .row{display:flex;gap:8px}
+
+/* panels */
+.sheet{position:absolute;padding:20px 22px;overflow:auto;animation:rise .25s ease both}
+.sheet h2{margin:0 0 4px;font:italic 500 28px/1.1 var(--display)}
+.sheet h4{margin:20px 0 8px;color:var(--accent)}
+.sheet p{margin:0 0 10px;color:rgba(244,239,229,.85)}
+.sheet .x{position:absolute;top:12px;right:12px;width:32px;height:32px;border:0;background:none;border-radius:8px;font-size:20px;line-height:1;color:var(--dim)}
+.sheet .x:hover{background:rgba(244,239,229,.1);color:var(--paper)}
+#journal{right:max(16px,env(safe-area-inset-right,0px));top:calc(74px + env(safe-area-inset-top,0px));bottom:calc(16px + env(safe-area-inset-bottom,0px));width:min(380px,calc(100% - 32px))}
+.places,.people,.items{list-style:none;margin:0;padding:0;display:grid;gap:8px}
+.places li{display:grid;grid-template-columns:14px 1fr;gap:8px}
+.places li i{width:8px;height:8px;border-radius:50%;margin-top:7px;border:1px solid var(--dim)}
+.places li.seen i{background:var(--accent);border-color:var(--accent)}
+.places li.marked i{border-color:var(--accent);box-shadow:0 0 0 3px rgba(255,255,255,.08)}
+.places li span{color:var(--dim);font-size:13px;display:block}
+.places li.unseen b{color:var(--dim);font-weight:500}
+.items li{display:inline-flex;align-items:center;gap:8px;border:1px solid var(--hair);border-radius:999px;padding:6px 12px;margin:0 6px 6px 0}
+.items{display:block}
+.goal{border-left:2px solid var(--accent);padding:2px 0 2px 12px;font:italic 500 17px/1.4 var(--display)}
+
+#mapview{left:50%;top:50%;transform:translate(-50%,-50%);width:min(620px,calc(100% - 32px));padding:18px;animation:none}
+#mapview canvas{width:100%;aspect-ratio:1;display:block;border-radius:10px;max-width:100%}
+#mapview .legend{display:flex;gap:16px;flex-wrap:wrap;margin-top:10px;color:var(--dim)}
+
+#dialog{position:absolute;left:50%;transform:translateX(-50%);bottom:calc(16px + env(safe-area-inset-bottom,0px));width:min(720px,calc(100% - 32px));display:flex;flex-direction:column;max-height:min(62vh,560px);padding:16px 18px 14px;animation:rise .25s ease both}
+#dialog header{display:flex;align-items:baseline;gap:12px;padding-right:36px}
+#dialog header b{font:italic 600 26px/1.1 var(--display)}
+#dialog header .mono{color:var(--accent)}
+.lines{overflow:auto;display:flex;flex-direction:column;gap:10px;padding:12px 2px;min-height:0;flex:1}
+.line{max-width:88%;font-size:16px;line-height:1.5}
+.line.them{align-self:flex-start}
+.line.me{align-self:flex-end;color:var(--dim);text-align:right;font-style:italic}
+.line.act{align-self:center;font:500 10.5px/1.4 var(--mono);letter-spacing:.08em;text-transform:uppercase;color:var(--accent);text-align:center}
+.line .cursor{display:inline-block;width:7px;height:1em;background:var(--accent);vertical-align:-2px;margin-left:2px;animation:pulse 1s infinite}
+.say{display:flex;gap:8px;align-items:center;border-top:1px solid var(--hair);padding-top:12px}
+.say input{flex:1;min-width:0;background:rgba(244,239,229,.06);border:1px solid var(--hair);border-radius:10px;padding:10px 12px;outline:none}
+.say input:focus{border-color:var(--accent)}
+.offer{display:flex;gap:6px;flex-wrap:wrap;padding-top:10px}
+.offer button{border:1px dashed var(--hair);background:none;border-radius:999px;padding:5px 11px;font-size:12.5px;color:var(--dim)}
+.offer button:hover{border-color:var(--accent);color:var(--accent)}
+.note{color:var(--dim);font-size:12.5px;padding-top:8px}
+
+#reshape{left:50%;transform:translateX(-50%);bottom:calc(16px + env(safe-area-inset-bottom,0px));width:min(760px,calc(100% - 32px));padding:16px 18px}
+#reshape form{display:flex;gap:8px;margin-top:10px}
+#reshape input{flex:1;min-width:0;background:rgba(244,239,229,.06);border:1px solid var(--hair);border-radius:10px;padding:12px 14px;outline:none;font:italic 400 18px/1.3 var(--display)}
+#reshape input:focus{border-color:var(--accent)}
+#reshape .ideas{margin-top:10px}
+#reshape ol{list-style:none;margin:10px 0 0;padding:0;display:grid;gap:5px;max-height:150px;overflow:auto}
+#reshape li{display:grid;grid-template-columns:62px 1fr;gap:10px;font-size:13.5px}
+#reshape li .mono{color:var(--accent)}
+
+#atlas{left:50%;top:50%;transform:translate(-50%,-50%);width:min(820px,calc(100% - 32px));max-height:calc(100% - 120px);animation:none}
+.cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:12px;margin-top:12px}
+.card{border:1px solid var(--hair);border-radius:12px;padding:14px;display:grid;gap:6px;align-content:start;background:rgba(244,239,229,.03)}
+.card .sw{height:46px;border-radius:8px}
+.card b{font:italic 600 19px/1.15 var(--display)}
+.card span{color:var(--dim);font-size:13px}
+.card .mono{color:var(--dim)}
+.card .row{display:flex;gap:6px;margin-top:6px;flex-wrap:wrap}
+.card .row .btn{padding:7px 11px;font-size:13px}
+.empty{border:1px dashed var(--hair);border-radius:12px;padding:18px;color:var(--dim)}
+
+.presence{position:absolute;top:calc(74px + env(safe-area-inset-top,0px));left:max(16px,env(safe-area-inset-left,0px));padding:8px 12px;display:flex;align-items:center;gap:8px;color:var(--dim)}
+.presence i{width:7px;height:7px;border-radius:50%;background:#7fb4ff}
+#chat{position:absolute;left:50%;transform:translateX(-50%);bottom:calc(84px + env(safe-area-inset-bottom,0px));width:min(520px,calc(100% - 32px));padding:8px;display:flex;gap:8px}
+#chat input{flex:1;min-width:0;background:none;border:0;outline:none;padding:6px 8px}
+
+.joy{position:absolute;left:max(24px,env(safe-area-inset-left,0px));bottom:calc(24px + env(safe-area-inset-bottom,0px));width:130px;height:130px;border-radius:50%;display:none}
+.joy i{position:absolute;left:50%;top:50%;width:54px;height:54px;margin:-27px 0 0 -27px;border-radius:50%;background:rgba(244,239,229,.25);border:1px solid rgba(244,239,229,.4)}
+.touch .joy{display:block}
+.touch .minimap{left:auto;right:max(16px,env(safe-area-inset-right,0px));bottom:calc(16px + env(safe-area-inset-bottom,0px));width:110px;height:110px}
+.touch .compass{display:none}
+.touch .jump{display:grid}
+.jump{position:absolute;right:max(140px,env(safe-area-inset-right,0px));bottom:calc(30px + env(safe-area-inset-bottom,0px));width:64px;height:64px;border-radius:50%;display:none;place-items:center;font-weight:700}
+
+.help{position:absolute;left:50%;bottom:calc(16px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);padding:9px 14px;color:var(--dim);display:flex;gap:14px;flex-wrap:wrap;justify-content:center;font-size:13px;transition:opacity .6s;max-width:calc(100% - 360px)}
+.touch .help{display:none}
+
+@media (max-width:760px){
+  .tools .lbl,.tools kbd{display:none}
+  .tools button{padding:0 9px}
+  .where{max-width:calc(100vw - 32px)}
+  .topbar{flex-wrap:wrap}
+  .tools{margin-left:0}
+  .seed{flex-wrap:wrap}
+  .seed label{flex-basis:100%;padding:4px 8px}
+  .seed .go{flex:1;justify-content:center;padding:14px}
+  .tiers{align-self:stretch}
+  #title{padding-top:24px}
+  #ideas button:nth-child(n+5){display:none}
+  #title h1{font-size:clamp(56px,19vw,96px)}
+  #title .lede{margin:10px 0 18px}
+  .help{display:none}
+  .caption{top:30%}
+}
+@media (prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:.001ms!important;transition-duration:.001ms!important}}
+</style>
+
+<canvas id="gl" tabindex="0" aria-label="The world. Drag to look around; use W A S D to walk."></canvas>
+
+<div id="hud" class="hidden">
+  <div id="labels" aria-hidden="true"></div>
+  <div class="topbar">
+    <div class="where glass playonly" id="where" role="status"><b id="w-name">Worldseed</b><span class="mono" id="w-meta">—</span></div>
+    <nav class="tools glass playonly" aria-label="Tools">
+      <button id="t-journal" aria-pressed="false" title="Journal (J)"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M4 3h9a3 3 0 0 1 3 3v11H7a3 3 0 0 1-3-3z"/><path d="M4 14a3 3 0 0 1 3-3h9"/></svg><span class="lbl">Journal</span><kbd>J</kbd></button>
+      <button id="t-map" aria-pressed="false" title="Map (M)"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 5l5-2 6 2 5-2v12l-5 2-6-2-5 2z"/><path d="M7 3v12M13 5v12"/></svg><span class="lbl">Map</span><kbd>M</kbd></button>
+      <button id="t-reshape" aria-pressed="false" title="Reshape the world (R)"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M10 2l1.8 5.2L17 9l-5.2 1.8L10 16l-1.8-5.2L3 9l5.2-1.8z"/></svg><span class="lbl">Reshape</span><kbd>R</kbd></button>
+      <button id="t-atlas" aria-pressed="false" title="Atlas of kept worlds"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="10" cy="10" r="7.5"/><path d="M2.5 10h15M10 2.5c2.5 2.6 2.5 12.4 0 15M10 2.5c-2.5 2.6-2.5 12.4 0 15"/></svg><span class="lbl">Atlas</span></button>
+      <button id="t-photo" title="Take a postcard (P)"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="2.5" y="5" width="15" height="11" rx="2"/><circle cx="10" cy="10.5" r="3"/><path d="M7 5l1.2-2h3.6L13 5"/></svg><span class="lbl">Postcard</span></button>
+      <button id="t-sound" aria-pressed="true" title="Sound"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3 8h3l4-3v10l-4-3H3z"/><path d="M13.5 7.5a3.5 3.5 0 0 1 0 5M15.5 5a7 7 0 0 1 0 10"/></svg></button>
+      <button id="t-new" title="Grow a new world"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M10 17V9M10 9c0-3 2-5 6-5 0 4-2 6-6 5zM10 11c0-2.5-1.6-4-5-4 0 3 1.6 4.5 5 4z"/></svg><span class="lbl">New world</span></button>
+    </nav>
+  </div>
+  <div class="presence glass playonly" id="presence" hidden><i></i><span id="presence-n"></span></div>
+  <button class="minimap glass playonly" id="minimap" aria-label="Open the map"><canvas width="312" height="312"></canvas></button>
+  <div class="compass mono playonly" id="compass"></div>
+  <div class="help glass playonly" id="help"><span><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> walk</span><span><kbd>Shift</kbd> run</span><span><kbd>Space</kbd> jump</span><span>drag to look</span><span><kbd>E</kbd> talk</span><span><kbd>T</kbd> say</span></div>
+  <button class="prompt glass playonly" id="prompt" hidden></button>
+  <div class="caption" id="caption" aria-live="polite"></div>
+  <div class="titlecard" id="titlecard"><div class="mono" id="tc-kicker">You arrive in</div><h2 id="tc-name"></h2><p id="tc-tag"></p></div>
+  <section id="genesis" class="glass" hidden aria-live="polite"></section>
+  <section id="dialog" class="glass sheet" hidden role="dialog" aria-label="Conversation"></section>
+  <section id="journal" class="glass sheet" hidden aria-label="Journal"></section>
+  <section id="mapview" class="glass sheet" hidden aria-label="Map"></section>
+  <section id="reshape" class="glass sheet" hidden aria-label="Reshape the world"></section>
+  <section id="atlas" class="glass sheet" hidden aria-label="Atlas"></section>
+  <form id="chat" class="glass" hidden autocomplete="off"><input id="chat-in" maxlength="140" placeholder="Say something to the explorers here…" aria-label="Say something"><button class="btn primary" type="submit">Say</button></form>
+  <div class="joy glass playonly" id="joy" aria-hidden="true"><i></i></div>
+  <button class="jump glass playonly" id="jumpbtn" aria-label="Jump">↑</button>
+  <div class="toasts" id="toasts" aria-live="polite"></div>
+</div>
+
+<section id="title" aria-label="Worldseed">
+  <h1>World<span>seed</span></h1>
+  <p class="lede">Type one sentence. Claude grows it into a world you can walk through, full of people who remember you.</p>
+  <form class="seed glass" id="seedform" autocomplete="off">
+    <label for="seed-in"><span class="mono">A world where…</span><input id="seed-in" maxlength="300" placeholder="a drowned city where the bells still ring at low tide"></label>
+    <div class="tiers" id="tiers" role="radiogroup" aria-label="How hard Claude thinks">
+      <button type="button" role="radio" data-tier="quick" class="mono" title="Fastest">Fast</button>
+      <button type="button" role="radio" data-tier="default" class="mono" title="Balanced">Rich</button>
+      <button type="button" role="radio" data-tier="complex" class="mono" title="Most imaginative, slowest">Epic</button>
+    </div>
+    <button class="go" id="seed-go" type="submit">Grow it<svg width="18" height="18" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M10 17V9M10 9c0-3 2-5 6-5 0 4-2 6-6 5zM10 11c0-2.5-1.6-4-5-4 0 3 1.6 4.5 5 4z"/></svg></button>
+  </form>
+  <div class="ideas" id="ideas"></div>
+  <div class="title-foot">
+    <button class="btn primary" id="enter">Walk into <span id="enter-name">this world</span> →</button>
+    <button class="btn" id="title-atlas">Atlas of kept worlds</button>
+    <span class="status mono" id="status"><i></i><span>Connecting</span></span>
+  </div>
+</section>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="core.js" charset="utf-8"></script>
+<script src="builders.js" charset="utf-8"></script>
+<script src="world.js" charset="utf-8"></script>
+<script src="mind.js" charset="utf-8"></script>
+<script src="sound.js" charset="utf-8"></script>
+<script src="seeds.js" charset="utf-8"></script>
+<script src="app.js" charset="utf-8"></script>
+
+</body>
+</html>

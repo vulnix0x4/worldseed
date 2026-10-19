@@ -1,0 +1,7 @@
+# local test harnesses (fake claude.ai runtime, recorded model output)
+dev.html
+dev-live.html
+dev-stub.js
+dev-*.txt
+.claude/
+.DS_Store
